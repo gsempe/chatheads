@@ -14,7 +14,7 @@
 
 + (id)draggableViewWithImage:(UIImage *)image
 {
-    CHDraggableView *view = [[CHDraggableView alloc] initWithFrame:CGRectMake(0, 0, 66, 66)];
+    CHDraggableView *view = [[CHDraggableView alloc] initWithFrame:CGRectMake(0, 0, 100, 100)];
     
     CHAvatarView *avatarView = [[CHAvatarView alloc] initWithFrame:CGRectInset(view.bounds, 4, 4)];
     avatarView.backgroundColor = [UIColor clearColor];

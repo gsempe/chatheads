@@ -120,21 +120,23 @@ typedef enum {
 
 - (void)draggableViewTouched:(CHDraggableView *)view
 {
-    if (_state == CHInteractionStateNormal) {
-        _state = CHInteractionStateConversation;
-        [self _animateViewToConversationArea:view];
-        
-        [self _presentViewControllerForDraggableView:view];
-    } else if(_state == CHInteractionStateConversation) {
-        _state = CHInteractionStateNormal;
-        NSValue *knownEdgePoint = [_edgePointDictionary objectForKey:@(view.tag)];
-        if (knownEdgePoint) {
-            [self _animateView:view toEdgePoint:[knownEdgePoint CGPointValue]];
-        } else {
-            [self _animateViewToEdges:view];
-        }
-        [self _dismissPresentedNavigationController];
-    }
+    [self _animateToSlidingPanelView:view];
+
+//    if (_state == CHInteractionStateNormal) {
+//        _state = CHInteractionStateConversation;
+//        [self _animateViewToConversationArea:view];
+//        
+//        [self _presentViewControllerForDraggableView:view];
+//    } else if(_state == CHInteractionStateConversation) {
+//        _state = CHInteractionStateNormal;
+//        NSValue *knownEdgePoint = [_edgePointDictionary objectForKey:@(view.tag)];
+//        if (knownEdgePoint) {
+//            [self _animateView:view toEdgePoint:[knownEdgePoint CGPointValue]];
+//        } else {
+//            [self _animateViewToEdges:view];
+//        }
+//        [self _dismissPresentedNavigationController];
+//    }
 }
 
 #pragma mark Dragging Helper
@@ -156,6 +158,11 @@ typedef enum {
     CGRect conversationArea = [self _conversationArea];
     CGPoint center = CGPointMake(CGRectGetMidX(conversationArea), CGRectGetMidY(conversationArea));
     [view snapViewCenterToPoint:center edge:[self _destinationEdgeForReleasePointInCurrentState:view.center]];
+}
+
+- (void)_animateToSlidingPanelView:(CHDraggableView *)view
+{
+    [view hideViewCenterToSlidingPanel];
 }
 
 #pragma mark - View Controller Handling

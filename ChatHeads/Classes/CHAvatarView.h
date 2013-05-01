@@ -10,5 +10,6 @@
 @interface CHAvatarView : UIView
 
 @property (strong, nonatomic) UIImage *image;
+@property (nonatomic, assign) NSInteger percentage;
 
 @end

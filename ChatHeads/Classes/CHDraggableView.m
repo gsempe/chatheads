@@ -8,11 +8,14 @@
 
 #import "CHDraggableView.h"
 #import <QuartzCore/QuartzCore.h>
+#import "Fotolia.h"
 
+#import "CHAvatarView.h"
 #import "SKBounceAnimation.h"
 
 @interface CHDraggableView ()
 
+@property(nonatomic) CHAvatarView *avatarView;
 @property (nonatomic, assign) BOOL moved;
 @property (nonatomic, assign) BOOL scaledDown;
 @property (nonatomic, assign) CGPoint startTouchPoint;
@@ -20,6 +23,11 @@
 @end
 
 @implementation CHDraggableView
+
+- (void)dealloc
+{
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -30,9 +38,87 @@
     return self;
 }
 
+- (id)initWithImage:(UIImage *)avatar
+{
+    self = [super initWithFrame:CGRectMake(160, 200, 100, 100)];
+    if (self) {
+        // Initialization code
+        _avatarView = [[CHAvatarView alloc] initWithFrame:CGRectInset(self.bounds, 4, 4)];
+        _avatarView.backgroundColor = [UIColor clearColor];
+        [_avatarView setImage:avatar];
+        _avatarView.center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
+        [self addSubview:_avatarView];
+        [self setHidden:YES];
+        [[NSNotificationCenter defaultCenter] addObserverForName:kFXManagerImageUploadProgressNotification object:nil queue:nil usingBlock:^(NSNotification *note) {
+            NSDictionary *userInfo = note.userInfo;
+            NSNumber *state = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationStateKey];
+            NSString *UUID = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationUUIDKey];
+            NSNumber *percentage = nil;
+            NSError *error = nil;
+            switch ([state integerValue]) {
+                case FXManagerUploadImageStart:
+                    percentage = @(0);
+                    self.avatar = nil;
+                    DLog(@"Image %@ start", UUID);
+                    break;
+                case FXManagerUploadImageInProgress:
+                    percentage = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationProgressKey];
+                    DLog(@"Image %@ in progress %@", UUID, percentage);
+                    break;
+                case FXManagerUploadImageEnd:
+                    percentage = @(100);
+                    DLog(@"Image %@ end", UUID);
+                    break;
+                case FXManagerUploadImageError:
+                    error = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationErrorKey];
+                    DLog(@"Image %@ error : %@", UUID, error);
+                    break;
+                default:
+                    break;
+            }
+            if (nil!=error) {
+                //
+            } else {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (nil!=percentage) {
+                        [self setPercentage:[percentage integerValue]];
+                        if (100==[percentage integerValue]) {
+                            [self setHidden:YES];
+                        } else {
+                            [self setHidden:NO];
+                            [self setAvatar:[UIImage imageWithContentsOfFile:[[FXManager sharedManager] mediaThumbPathWithUUID:UUID]]];
+                        }
+                    }
+                });
+            }
+        }];
+    }
+    return self;
+}
+
 - (void)snapViewCenterToPoint:(CGPoint)point edge:(CGRectEdge)edge
 {
     [self _snapViewCenterToPoint:point edge:edge];
+}
+
+- (void)hideViewCenterToSlidingPanel
+{
+    [self _hideViewCenterToPoint:CGPointMake(20, 20)];
+}
+
+#pragma mark - Acessors
+- (void)setAvatar:(UIImage *)avatar
+{
+    _avatar = avatar;
+    [self.avatarView setImage:_avatar];
+    [self.avatarView setNeedsDisplay];
+}
+
+- (void)setPercentage:(NSInteger *)percentage
+{
+    _percentage = percentage;
+    [self.avatarView setPercentage:_percentage];
+    [self.avatarView setNeedsDisplay];
 }
 
 #pragma mark - Override Touches
@@ -145,6 +231,51 @@
     animation.duration = 1.2f;
     self.layer.position = point;
     [self.layer addAnimation:animation forKey:nil];
+}
+
+- (void)_hideViewCenterToPoint:(CGPoint)point
+{
+    CGPoint currentCenter = self.center;
+    [CATransaction begin];
+    CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"position"];
+    animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear];
+    animation.fromValue = [NSValue valueWithCGPoint:currentCenter];
+    animation.toValue = [NSValue valueWithCGPoint:point];
+    animation.duration = 0.2f;
+    self.layer.position = point;
+    [self.layer addAnimation:animation forKey:nil];
+    
+    // avatar layer animation
+    CALayer *avatarLayer = [[[self subviews] objectAtIndex:0] layer];
+    
+    CGRect newBounds = self.layer.bounds;
+    newBounds.size = CGSizeMake(0, 0);
+    CABasicAnimation *boundsAnimation = [CABasicAnimation animationWithKeyPath:@"bounds"];
+    boundsAnimation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear];
+    boundsAnimation.fromValue = [NSValue valueWithCGRect:self.bounds];
+    boundsAnimation.toValue = [NSValue valueWithCGRect:newBounds];
+    boundsAnimation.duration = 0.2f;
+    
+    
+//    avatarLayer.bounds = newBounds;
+    
+    CAKeyframeAnimation *alphaAnimation = [CAKeyframeAnimation animationWithKeyPath:@"opacity"];
+    NSArray *times = @[@(0.0),@(0.18),@(0.2)];
+    [alphaAnimation setKeyTimes:times];
+    NSArray *values = @[@(1),@(1), @(0)];
+    [alphaAnimation setValues:values];
+    alphaAnimation.duration = 0.2;
+    
+    CAAnimationGroup * avatarLayerAnimationGroup = [CAAnimationGroup animation];
+    [avatarLayerAnimationGroup setAnimations:@[boundsAnimation, alphaAnimation]];
+    avatarLayerAnimationGroup.duration = 0.2;
+    [avatarLayer addAnimation:avatarLayerAnimationGroup forKey:nil];
+    
+    
+    
+    
+    [CATransaction commit];
+
 }
 
 @end
