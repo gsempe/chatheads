@@ -9,6 +9,7 @@
 #import "CHDraggableView.h"
 #import <QuartzCore/QuartzCore.h>
 #import "Fotolia.h"
+#import "UIImage+SSToolkitAdditions.h"
 
 #import "CHAvatarView.h"
 #import "SKBounceAnimation.h"
@@ -86,7 +87,14 @@
                             [self setHidden:YES];
                         } else {
                             [self setHidden:NO];
-                            [self setAvatar:[UIImage imageWithContentsOfFile:[[FXManager sharedManager] mediaThumbPathWithUUID:UUID]]];
+                            if (nil==self.avatar) {
+                                dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+                                    UIImage *avatarImage = [[UIImage imageWithContentsOfFile:[[FXManager sharedManager] mediaThumbPathWithUUID:UUID]] squareImage];
+                                    dispatch_async(dispatch_get_main_queue(), ^{
+                                        [self setAvatar:avatarImage];
+                                    });
+                                });
+                            }
                         }
                     }
                 });
