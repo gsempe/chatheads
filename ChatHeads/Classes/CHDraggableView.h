@@ -13,6 +13,7 @@
 
 @property(nonatomic) UIImage *avatar;
 @property(nonatomic, assign) NSInteger *percentage;
+@property(nonatomic, assign, getter = isForcedHidden) BOOL forcedHidden;
 @property (nonatomic, assign) id<CHDraggableViewDelegate> delegate;
 
 - (id)initWithImage:(UIImage *)avatar;

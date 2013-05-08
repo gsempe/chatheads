@@ -49,7 +49,8 @@
         [_avatarView setImage:avatar];
         _avatarView.center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
         [self addSubview:_avatarView];
-        [self setHidden:YES];
+        _forcedHidden = YES;
+        [self setAlpha:0];
         [[NSNotificationCenter defaultCenter] addObserverForName:kFXManagerImageUploadProgressNotification object:nil queue:nil usingBlock:^(NSNotification *note) {
             NSDictionary *userInfo = note.userInfo;
             NSNumber *state = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationStateKey];
@@ -81,19 +82,29 @@
                 //
             } else {
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    if (nil!=percentage) {
-                        [self setPercentage:[percentage integerValue]];
-                        if (100==[percentage integerValue]) {
-                            [self setHidden:YES];
-                        } else {
-                            [self setHidden:NO];
-                            if (nil==self.avatar) {
-                                dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-                                    UIImage *avatarImage = [[UIImage imageWithContentsOfFile:[[FXManager sharedManager] mediaThumbPathWithUUID:UUID]] squareImage];
-                                    dispatch_async(dispatch_get_main_queue(), ^{
-                                        [self setAvatar:avatarImage];
+                    if (YES==self.isForcedHidden) {
+                        [UIView animateWithDuration:0.2 animations:^{
+                            [self setAlpha:0];
+                        }];
+                    } else {
+                        if (nil!=percentage) {
+                            [self setPercentage:[percentage integerValue]];
+                            if (100==[percentage integerValue]) {
+                                [UIView animateWithDuration:0.2 animations:^{
+                                    [self setAlpha:0];
+                                }];
+                            } else {
+                                [UIView animateWithDuration:0.2 animations:^{
+                                    [self setAlpha:1];
+                                }];
+                                if (nil==self.avatar) {
+                                    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+                                        UIImage *avatarImage = [[UIImage imageWithContentsOfFile:[[FXManager sharedManager] mediaThumbPathWithUUID:UUID]] squareImage];
+                                        dispatch_async(dispatch_get_main_queue(), ^{
+                                            [self setAvatar:avatarImage];
+                                        });
                                     });
-                                });
+                                }
                             }
                         }
                     }
@@ -127,6 +138,16 @@
     _percentage = percentage;
     [self.avatarView setPercentage:_percentage];
     [self.avatarView setNeedsDisplay];
+}
+
+- (void)setForcedHidden:(BOOL)forcedHidden
+{
+    _forcedHidden = forcedHidden;
+    if (YES==_forcedHidden) {
+        [UIView animateWithDuration:0.2 animations:^{
+            [self setAlpha:0];
+        }];
+    }
 }
 
 #pragma mark - Override Touches
