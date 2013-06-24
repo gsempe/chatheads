@@ -69,6 +69,7 @@
                     break;
                 case FXManagerUploadImageEnd:
                     percentage = @(100);
+                    self.avatar = nil;
                     DLog(@"Image %@ end", UUID);
                     break;
                 case FXManagerUploadImageError:
@@ -156,11 +157,11 @@
 {
     UITouch *touch = [touches anyObject];
     _startTouchPoint = [touch locationInView:self];
-    
+
     // Simulate a touch with the scale animation
     [self _beginHoldAnimation];
     _scaledDown = YES;
-    
+
     [_delegate draggableViewHold:self];
 }
 
@@ -168,7 +169,7 @@
 {
     UITouch *touch = [touches anyObject];
     CGPoint movedPoint = [touch locationInView:self];
-    
+
     CGFloat deltaX = movedPoint.x - _startTouchPoint.x;
     CGFloat deltaY = movedPoint.y - _startTouchPoint.y;
     [self _moveByDeltaX:deltaX deltaY:deltaY];
@@ -177,7 +178,7 @@
     }
     _scaledDown = NO;
     _moved = YES;
-    
+
     [_delegate draggableView:self didMoveToPoint:movedPoint];
 }
 
@@ -191,7 +192,7 @@
     } else {
         [_delegate draggableViewReleased:self];
     }
-    
+
     _moved = NO;
 }
 
@@ -211,7 +212,7 @@
 {
     CGFloat x = point2.x - point1.x;
     CGFloat y = point2.y - point1.y;
-    
+
     return atan2f(x,y);
 }
 
@@ -232,7 +233,7 @@
     animation.fromValue = [NSValue valueWithCATransform3D:CATransform3DMakeScale(1, 1, 1)];
     animation.toValue = [NSValue valueWithCATransform3D:CATransform3DMakeScale(0.95f, 0.95f, 1)];
     animation.duration = 0.2f;
-    
+
     self.layer.transform = [animation.toValue CATransform3DValue];
     [self.layer addAnimation:animation forKey:nil];
 }
@@ -244,7 +245,7 @@
     animation.fromValue = [NSValue valueWithCATransform3D:self.layer.transform];
     animation.toValue = [NSValue valueWithCATransform3D:CATransform3DMakeScale(1, 1, 1)];
     animation.duration = 0.2f;
-    
+
     self.layer.transform = [animation.toValue CATransform3DValue];
     [self.layer addAnimation:animation forKey:nil];
 }
@@ -252,7 +253,7 @@
 - (void)_snapViewCenterToPoint:(CGPoint)point edge:(CGRectEdge)edge
 {
     CGPoint currentCenter = self.center;
-    
+
     SKBounceAnimation *animation = [SKBounceAnimation animationWithKeyPath:@"position"];
     animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear];
     animation.fromValue = [NSValue valueWithCGPoint:currentCenter];
@@ -273,10 +274,10 @@
     animation.duration = 0.2f;
     self.layer.position = point;
     [self.layer addAnimation:animation forKey:nil];
-    
+
     // avatar layer animation
     CALayer *avatarLayer = [[[self subviews] objectAtIndex:0] layer];
-    
+
     CGRect newBounds = self.layer.bounds;
     newBounds.size = CGSizeMake(0, 0);
     CABasicAnimation *boundsAnimation = [CABasicAnimation animationWithKeyPath:@"bounds"];
@@ -284,25 +285,25 @@
     boundsAnimation.fromValue = [NSValue valueWithCGRect:self.bounds];
     boundsAnimation.toValue = [NSValue valueWithCGRect:newBounds];
     boundsAnimation.duration = 0.2f;
-    
-    
+
+
 //    avatarLayer.bounds = newBounds;
-    
+
     CAKeyframeAnimation *alphaAnimation = [CAKeyframeAnimation animationWithKeyPath:@"opacity"];
     NSArray *times = @[@(0.0),@(0.18),@(0.2)];
     [alphaAnimation setKeyTimes:times];
     NSArray *values = @[@(1),@(1), @(0)];
     [alphaAnimation setValues:values];
     alphaAnimation.duration = 0.2;
-    
+
     CAAnimationGroup * avatarLayerAnimationGroup = [CAAnimationGroup animation];
     [avatarLayerAnimationGroup setAnimations:@[boundsAnimation, alphaAnimation]];
     avatarLayerAnimationGroup.duration = 0.2;
     [avatarLayer addAnimation:avatarLayerAnimationGroup forKey:nil];
-    
-    
-    
-    
+
+
+
+
     [CATransaction commit];
 
 }
