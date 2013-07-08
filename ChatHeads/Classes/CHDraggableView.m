@@ -21,6 +21,7 @@
 @property (nonatomic, assign) BOOL scaledDown;
 @property (nonatomic, assign) CGPoint startTouchPoint;
 
+@property (nonatomic) NSString *UUID;
 @end
 
 @implementation CHDraggableView
@@ -51,67 +52,77 @@
         [self addSubview:_avatarView];
         _forcedHidden = YES;
         [self setAlpha:0];
+        _UUID = nil;
         [[NSNotificationCenter defaultCenter] addObserverForName:kFXManagerImageUploadProgressNotification object:nil queue:nil usingBlock:^(NSNotification *note) {
             NSDictionary *userInfo = note.userInfo;
             NSNumber *state = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationStateKey];
             NSString *UUID = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationUUIDKey];
             NSNumber *percentage = nil;
             NSError *error = nil;
-            switch ([state integerValue]) {
-                case FXManagerUploadImageStart:
-                    percentage = @(0);
-                    self.avatar = nil;
-                    DLog(@"Image %@ start", UUID);
-                    break;
-                case FXManagerUploadImageInProgress:
-                    percentage = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationProgressKey];
-                    DLog(@"Image %@ in progress %@", UUID, percentage);
-                    break;
-                case FXManagerUploadImageEnd:
-                    percentage = @(100);
-                    self.avatar = nil;
-                    DLog(@"Image %@ end", UUID);
-                    break;
-                case FXManagerUploadImageError:
-                    error = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationErrorKey];
-                    DLog(@"Image %@ error : %@", UUID, error);
-                    break;
-                default:
-                    break;
-            }
-            if (nil!=error) {
-                [UIView animateWithDuration:0.2 animations:^{
-                    [self setAlpha:0];
-                }];
-            } else {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if (YES==self.isForcedHidden) {
-                        [UIView animateWithDuration:0.2 animations:^{
-                            [self setAlpha:0];
-                        }];
-                    } else {
-                        if (nil!=percentage) {
-                            [self setPercentage:[percentage integerValue]];
-                            if (100==[percentage integerValue]) {
-                                [UIView animateWithDuration:0.2 animations:^{
-                                    [self setAlpha:0];
-                                }];
-                            } else {
-                                [UIView animateWithDuration:0.2 animations:^{
-                                    [self setAlpha:1];
-                                }];
-                                if (nil==self.avatar) {
-                                    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-                                        UIImage *avatarImage = [[UIImage imageWithContentsOfFile:[[FXManager sharedManager] mediaThumbPathWithUUID:UUID]] squareImage];
-                                        dispatch_async(dispatch_get_main_queue(), ^{
-                                            [self setAvatar:avatarImage];
+            if ((nil==self.UUID)||([self.UUID isEqualToString:UUID])) {
+                self.UUID = UUID;
+                switch ([state integerValue]) {
+                    case FXManagerUploadImageStart:
+                        percentage = @(0);
+                        self.avatar = nil;
+                        DLog(@"Image %@ start", UUID);
+                        break;
+                    case FXManagerUploadImageInProgress:
+                        percentage = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationProgressKey];
+                        DLog(@"Image %@ in progress %@", UUID, percentage);
+                        break;
+                    case FXManagerUploadImageEnd:
+                        percentage = @(100);
+                        self.avatar = nil;
+                        DLog(@"Image %@ end", UUID);
+                        break;
+                    case FXManagerUploadImageError:
+                        error = [userInfo valueForKey:kFXManagerImageUploadProgressNotificationErrorKey];
+                        DLog(@"Image %@ error : %@", UUID, error);
+                        break;
+                    default:
+                        break;
+                }
+                if (nil!=error) {
+                    [UIView animateWithDuration:0.2 animations:^{
+                        [self setAlpha:0];
+                    } completion:^(BOOL finished) {
+                        self.UUID = nil;
+                        self.avatar = nil;
+                    }];
+                } else {
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        if (YES==self.isForcedHidden) {
+                            [UIView animateWithDuration:0.2 animations:^{
+                                [self setAlpha:0];
+                            }];
+                        } else {
+                            if (nil!=percentage) {
+                                [self setPercentage:[percentage integerValue]];
+                                if (100==[percentage integerValue]) {
+                                    [UIView animateWithDuration:0.2 animations:^{
+                                        [self setAlpha:0];
+                                    } completion:^(BOOL finished) {
+                                        self.UUID = nil;
+                                        self.avatar = nil;
+                                    }];
+                                } else {
+                                    [UIView animateWithDuration:0.2 animations:^{
+                                        [self setAlpha:1];
+                                    }];
+                                    if (nil==self.avatar) {
+                                        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+                                            UIImage *avatarImage = [[UIImage imageWithContentsOfFile:[[FXManager sharedManager] mediaThumbPathWithUUID:UUID]] squareImage];
+                                            dispatch_async(dispatch_get_main_queue(), ^{
+                                                [self setAvatar:avatarImage];
+                                            });
                                         });
-                                    });
+                                    }
                                 }
                             }
                         }
-                    }
-                });
+                    });
+                }
             }
         }];
     }
