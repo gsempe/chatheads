@@ -80,7 +80,9 @@
                     break;
             }
             if (nil!=error) {
-                //
+                [UIView animateWithDuration:0.2 animations:^{
+                    [self setAlpha:0];
+                }];
             } else {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (YES==self.isForcedHidden) {
